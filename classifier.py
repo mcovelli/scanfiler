@@ -32,6 +32,8 @@ Return ONLY a valid JSON object with these exact keys — no explanation, no mar
 Rules:
 - "document_type" should be a clean, capitalized category name
 - "company" should be the official/common company name
+- "date" MUST be the actual statement, billing, or document date (ignore copyright or print dates)
+- The year/month in "suggested_filename" MUST exactly match the "date" field
 - "confidence" is a float 0.0–1.0 reflecting classification certainty
 - If you cannot determine type or company, set confidence below 0.5
 - Return ONLY the JSON object
