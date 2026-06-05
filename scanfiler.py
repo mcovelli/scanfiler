@@ -254,37 +254,69 @@ def process_all(config: dict, dry_run: bool = False) -> None:
     print()
 
 
-def process_single(file_path: str, config: dict, dry_run: bool = False) -> None:
-    """Process a single specified file."""
-    path = Path(file_path).expanduser().resolve()
+def process_specific_files(file_paths: list[str], config: dict, dry_run: bool = False) -> None:
+    """Process a list of specified files."""
+    valid_files = []
+    for file_path in file_paths:
+        path = Path(file_path).expanduser().resolve()
+        
+        if not path.exists():
+            print(f"\n  {Colors.RED}❌ File not found: {file_path}{Colors.RESET}")
+            continue
 
-    if not path.exists():
-        print(f"\n  {Colors.RED}❌ File not found: {file_path}{Colors.RESET}\n")
-        sys.exit(1)
-
-    ext = path.suffix.lower()
-    if ext not in config["supported_extensions"]:
-        print(f"\n  {Colors.RED}❌ Unsupported file type: {ext}{Colors.RESET}")
-        print(f"  {Colors.DIM}   Supported: {', '.join(config['supported_extensions'])}{Colors.RESET}\n")
-        sys.exit(1)
+        ext = path.suffix.lower()
+        if ext not in config["supported_extensions"]:
+            print(f"\n  {Colors.RED}❌ Unsupported file type: {ext} for {file_path}{Colors.RESET}")
+            continue
+            
+        valid_files.append(path)
+        
+    if not valid_files:
+        print(f"\n  {Colors.DIM}📭 No valid files found to process.{Colors.RESET}\n")
+        return
 
     mode = f"{Colors.YELLOW}DRY RUN{Colors.RESET}" if dry_run else f"{Colors.GREEN}LIVE{Colors.RESET}"
 
     print(f"\n  ╔══════════════════════════════════════════════╗")
-    print(f"  ║   🗂️  ScanFiler — Single File (Local)         ║")
+    print(f"  ║   🗂️  ScanFiler — Specific Files (Local)      ║")
     print(f"  ║   🔒 No data leaves your machine              ║")
     print(f"  ╚══════════════════════════════════════════════╝")
-    print(f"\n  📄 File:   {path}")
-    print(f"  📁 Output: {config['output_path']}")
+    print(f"\n  📁 Output: {config['output_path']}")
     print(f"  🤖 Model:  {config['ollama_model']}")
+    print(f"  📄 Files:  {len(valid_files)} found")
     print(f"  🔄 Mode:   {mode}")
 
     batch_id = generate_batch_id()
-    result = process_file(path, config, batch_id, dry_run)
+    results = []
 
-    if result["status"] == "filed":
-        print(f"\n  {Colors.DIM}💡 Run 'python scanfiler.py --undo' to undo{Colors.RESET}")
+    for i, file_path in enumerate(valid_files, 1):
+        print(f"\n  ── File {i}/{len(valid_files)} {'─' * 40}")
+        result = process_file(file_path, config, batch_id, dry_run)
+        results.append(result)
+
+    # Summary
+    filed = sum(1 for r in results if r["status"] == "filed")
+    skipped = sum(1 for r in results if r["status"] == "low_confidence")
+    errors = sum(1 for r in results if r["status"] == "error")
+    dry = sum(1 for r in results if r["status"] == "dry_run")
+
+    print(f"\n  ── Summary {'─' * 42}")
+
+    if dry_run:
+        print(f"  {Colors.YELLOW}🏃 Dry run complete: {dry} files would be filed{Colors.RESET}")
+    else:
+        print(f"  {Colors.GREEN}✅ Filed: {filed}{Colors.RESET}")
+
+    if skipped:
+        print(f"  {Colors.YELLOW}⚠️  Skipped (low confidence): {skipped}{Colors.RESET}")
+    if errors:
+        print(f"  {Colors.RED}❌ Errors: {errors}{Colors.RESET}")
+
+    if filed > 0:
+        print(f"\n  {Colors.DIM}💡 Run 'python scanfiler.py --undo' to undo this batch (ID: {batch_id}){Colors.RESET}")
+
     print()
+
 
 
 # ─── Undo Commands ──────────────────────────────────────────────────────────
@@ -359,7 +391,7 @@ Examples:
   %(prog)s --dry-run           Preview what would happen without moving files
   %(prog)s --undo              Undo the last batch of moves
   %(prog)s --log               View the full move history
-  %(prog)s ~/Downloads/doc.pdf Process a single file
+  %(prog)s ~/Downloads/doc1.pdf ~/Downloads/doc2.pdf Process specific files
   %(prog)s --setup             Re-run the setup wizard
 
 🔒 All processing happens locally. No data leaves your machine.
@@ -367,9 +399,9 @@ Examples:
     )
 
     parser.add_argument(
-        "file",
-        nargs="?",
-        help="Path to a specific file to process (optional)",
+        "files",
+        nargs="*",
+        help="Path to specific file(s) to process (optional)",
     )
     parser.add_argument(
         "--dry-run",
@@ -423,8 +455,8 @@ Examples:
 
     config = get_config()
 
-    if args.file:
-        process_single(args.file, config, dry_run=args.dry_run)
+    if args.files:
+        process_specific_files(args.files, config, dry_run=args.dry_run)
     else:
         process_all(config, dry_run=args.dry_run)
 
