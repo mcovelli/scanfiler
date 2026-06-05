@@ -183,12 +183,20 @@ python scanfiler.py --dry-run
 
 **This is recommended for your first run** so you can verify the classifications look correct.
 
-### Process a Single File
+### Process Specific Files
 
 ```bash
 python scanfiler.py ~/Downloads/scan_20260605.pdf
 python scanfiler.py ~/Downloads/electric_bill.jpg
 ```
+
+You can also process multiple files at once using wildcards:
+
+```bash
+python scanfiler.py ~/Downloads/"View PDF Statement"*
+```
+
+*(Tip: You can use the included `process_statements.sh` script to run this quickly. It defaults to `--dry-run`, but you can edit the script to process them for real!)*
 
 ### Undo
 
