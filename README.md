@@ -125,7 +125,7 @@ tesseract --version  # Should show tesseract 5.x.x
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/scanfiler.git
+git clone https://github.com/mcovelli/scanfiler.git
 cd scanfiler
 
 # Create a Python virtual environment
