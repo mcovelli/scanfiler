@@ -39,9 +39,11 @@ ScanFiler uses [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) and a
   - [Undo](#undo)
   - [View History](#view-history)
   - [Reconfigure](#reconfigure)
+- [Quick-Run Scripts](#quick-run-scripts)
 - [Folder Structure](#folder-structure)
 - [Configuration](#configuration)
 - [Setting Up a Shell Alias](#setting-up-a-shell-alias)
+- [Switching Models](#switching-models)
 - [Supported File Types](#supported-file-types)
 - [Troubleshooting](#troubleshooting)
 - [Limitations](#limitations)
@@ -138,6 +140,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+> **HEIC support:** `requirements.txt` includes `pillow-heif`, which adds HEIC decoding support to Pillow. If you set up your venv before this was added, run `pip install pillow-heif` inside your activated venv to pick it up.
+
 ### Step 5: First-Run Setup
 
 ```bash
@@ -224,6 +228,30 @@ Shows a formatted table of all past moves with timestamps, batch IDs, document t
 
 ```bash
 python scanfiler.py --setup
+```
+
+---
+
+## Quick-Run Scripts
+
+`process_statements.sh` is a convenience wrapper for a common workflow: filing a batch of files that share a naming pattern (by default, anything in `~/Downloads` starting with `View PDF Statement`).
+
+```bash
+./process_statements.sh
+```
+
+What it does:
+
+1. `cd`s into the script's own directory, so it works regardless of where you call it from
+2. Activates the virtual environment
+3. Runs `scanfiler.py --dry-run` against the matching files
+
+It ships in dry-run mode on purpose, so the first run won't move anything; it just gives you a preview. Once the classifications look right, open the script and either remove `--dry-run` or duplicate the line without it, and adjust the glob pattern (`"View PDF Statement"*`) to match whatever naming convention your scanner produces.
+
+Make sure the script is executable before running it:
+
+```bash
+chmod +x process_statements.sh
 ```
 
 ---
@@ -319,6 +347,34 @@ scanfiler --undo                   # Undo last batch
 
 ---
 
+## Switching Models
+
+`llama3.2` is the recommended default — small, fast, and accurate enough for common documents. To try a different Ollama model (e.g., a larger model for better accuracy on messy scans):
+
+1. Pull the model:
+
+   ```bash
+   ollama pull <model-name>
+   ```
+
+2. Point ScanFiler at it, either by re-running setup:
+
+   ```bash
+   python scanfiler.py --setup
+   ```
+
+   or by editing `ollama_model` directly in `~/.scanfiler/config.json`.
+
+3. Confirm the model responds:
+
+   ```bash
+   ollama run <model-name> "Say hello"
+   ```
+
+Larger models are slower per document and use more memory, but may improve classification on low-quality scans or unusual document formats. If accuracy problems persist regardless of model, the more likely cause is OCR quality — see [Troubleshooting](#troubleshooting).
+
+---
+
 ## Supported File Types
 
 | Format | Extensions |
@@ -381,7 +437,7 @@ tesseract --version
   brew install tesseract-lang
   ```
 - **Handwritten text:** Tesseract is designed for printed/typed text. Handwritten documents will produce poor results.
-- **HEIC files:** If HEIC images aren't working, ensure Pillow has HEIC support:
+- **HEIC files:** HEIC support requires `pillow-heif`, which is included in `requirements.txt`. If you set up the project before this was added, install it manually:
   ```bash
   pip install pillow-heif
   ```
