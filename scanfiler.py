@@ -83,17 +83,13 @@ def find_files(inbox_path: str, extensions: list[str]) -> list[Path]:
         sys.exit(1)
 
     files = []
-    for ext in extensions:
-        files.extend(inbox.glob(f"*{ext}"))
-        files.extend(inbox.glob(f"*{ext.upper()}"))
+    # Convert extensions to a lowercase set for efficient, case-insensitive lookups
+    supported = {ext.lower() for ext in extensions}
 
-    # Deduplicate
-    seen = set()
-    unique_files = []
-    for f in files:
-        if f.resolve() not in seen:
-            seen.add(f.resolve())
-            unique_files.append(f)
+    unique_files = [
+        f for f in inbox.iterdir()
+        if f.is_file() and f.suffix.lower() in supported
+    ]
 
     unique_files.sort(key=lambda f: f.name.lower())
     return unique_files
