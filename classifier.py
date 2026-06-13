@@ -121,8 +121,6 @@ def classify_with_ollama(text: str, model: str, host: str) -> dict:
 
     except Exception as e:
         error_msg = str(e)
-        # Directly return the raw error message to find out what is actually broken under the hood
-        return _error_result(f"RAW DIAGNOSTIC EXCEPTION: {type(e).__name__} -> {error_msg}")
         
         if "connection" in error_msg.lower() or "refused" in error_msg.lower():
             return _error_result(
