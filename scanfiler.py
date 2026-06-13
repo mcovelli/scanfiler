@@ -94,6 +94,49 @@ def find_files(inbox_path: str, extensions: list[str]) -> list[Path]:
     unique_files.sort(key=lambda f: f.name.lower())
     return unique_files
 
+def _execute_processing_cycle(files: list[Path], config: dict, dry_run: bool = False) -> None:
+    """Core execution cycle to process, classify, and summarize a list of documents."""
+    mode = f"{Colors.YELLOW}DRY RUN{Colors.RESET}" if dry_run else f"{Colors.GREEN}LIVE{Colors.RESET}"
+
+    print(f"\n  ╔══════════════════════════════════════════════╗")
+    print(f"  ║      🗂️  ScanFiler — Processing (Local)       ║")
+    print(f"  ║      🔒 No data leaves your machine           ║")
+    print(f"  ╚══════════════════════════════════════════════╝")
+    print(f"\n  📁 Output: {config['output_path']}")
+    print(f"  🤖 Model:  {config['ollama_model']}")
+    print(f"  📄 Files:  {len(files)} found")
+    print(f"  🔄 Mode:   {mode}")
+
+    batch_id = generate_batch_id()
+    results = []
+
+    for i, file_path in enumerate(files, 1):
+        print(f"\n  ── File {i}/{len(files)} {'─' * 40}")
+        result = process_file(file_path, config, batch_id, dry_run)
+        results.append(result)
+
+    # Calculate metrics
+    filed = sum(1 for r in results if r["status"] == "filed")
+    skipped = sum(1 for r in results if r["status"] == "low_confidence")
+    errors = sum(1 for r in results if r["status"] == "error")
+    dry = sum(1 for r in results if r["status"] == "dry_run")
+
+    print(f"\n  ── Summary {'─' * 42}")
+
+    if dry_run:
+        print(f"  {Colors.YELLOW}🏃 Dry run complete: {dry} files would be filed{Colors.RESET}")
+    else:
+        print(f"  {Colors.GREEN}✅ Filed: {filed}{Colors.RESET}")
+
+    if skipped:
+        print(f"  {Colors.YELLOW}⚠️  Skipped (low confidence): {skipped}{Colors.RESET}")
+    if errors:
+        print(f"  {Colors.RED}❌ Errors: {errors}{Colors.RESET}")
+
+    if filed > 0:
+        print(f"\n  {Colors.DIM}💡 Run 'python scanfiler.py --undo' to undo this batch (ID: {batch_id}){Colors.RESET}")
+
+    print()
 
 def process_file(
     file_path: Path,
@@ -206,48 +249,8 @@ def process_all(config: dict, dry_run: bool = False) -> None:
         print(f"  {Colors.DIM}   Supported types: {', '.join(config['supported_extensions'])}{Colors.RESET}\n")
         return
 
-    mode = f"{Colors.YELLOW}DRY RUN{Colors.RESET}" if dry_run else f"{Colors.GREEN}LIVE{Colors.RESET}"
-
-    print(f"\n  ╔══════════════════════════════════════════════╗")
-    print(f"  ║      🗂️  ScanFiler — Processing (Local)       ║")
-    print(f"  ║      🔒 No data leaves your machine           ║")
-    print(f"  ╚══════════════════════════════════════════════╝")
-    print(f"\n  📂 Inbox:  {config['inbox_path']}")
-    print(f"  📁 Output: {config['output_path']}")
-    print(f"  🤖 Model:  {config['ollama_model']}")
-    print(f"  📄 Files:  {len(files)} found")
-    print(f"  🔄 Mode:   {mode}")
-
-    batch_id = generate_batch_id()
-    results = []
-
-    for i, file_path in enumerate(files, 1):
-        print(f"\n  ── File {i}/{len(files)} {'─' * 40}")
-        result = process_file(file_path, config, batch_id, dry_run)
-        results.append(result)
-
-    # Summary
-    filed = sum(1 for r in results if r["status"] == "filed")
-    skipped = sum(1 for r in results if r["status"] == "low_confidence")
-    errors = sum(1 for r in results if r["status"] == "error")
-    dry = sum(1 for r in results if r["status"] == "dry_run")
-
-    print(f"\n  ── Summary {'─' * 42}")
-
-    if dry_run:
-        print(f"  {Colors.YELLOW}🏃 Dry run complete: {dry} files would be filed{Colors.RESET}")
-    else:
-        print(f"  {Colors.GREEN}✅ Filed: {filed}{Colors.RESET}")
-
-    if skipped:
-        print(f"  {Colors.YELLOW}⚠️  Skipped (low confidence): {skipped}{Colors.RESET}")
-    if errors:
-        print(f"  {Colors.RED}❌ Errors: {errors}{Colors.RESET}")
-
-    if filed > 0:
-        print(f"\n  {Colors.DIM}💡 Run 'python scanfiler.py --undo' to undo this batch (ID: {batch_id}){Colors.RESET}")
-
-    print()
+    print(f"  📂 Inbox:  {config['inbox_path']}")
+    _execute_processing_cycle(files, config, dry_run)
 
 
 def process_specific_files(file_paths: list[str], config: dict, dry_run: bool = False) -> None:
@@ -271,47 +274,7 @@ def process_specific_files(file_paths: list[str], config: dict, dry_run: bool = 
         print(f"\n  {Colors.DIM}📭 No valid files found to process.{Colors.RESET}\n")
         return
 
-    mode = f"{Colors.YELLOW}DRY RUN{Colors.RESET}" if dry_run else f"{Colors.GREEN}LIVE{Colors.RESET}"
-
-    print(f"\n  ╔══════════════════════════════════════════════╗")
-    print(f"  ║   🗂️  ScanFiler — Specific Files (Local)      ║")
-    print(f"  ║   🔒 No data leaves your machine              ║")
-    print(f"  ╚══════════════════════════════════════════════╝")
-    print(f"\n  📁 Output: {config['output_path']}")
-    print(f"  🤖 Model:  {config['ollama_model']}")
-    print(f"  📄 Files:  {len(valid_files)} found")
-    print(f"  🔄 Mode:   {mode}")
-
-    batch_id = generate_batch_id()
-    results = []
-
-    for i, file_path in enumerate(valid_files, 1):
-        print(f"\n  ── File {i}/{len(valid_files)} {'─' * 40}")
-        result = process_file(file_path, config, batch_id, dry_run)
-        results.append(result)
-
-    # Summary
-    filed = sum(1 for r in results if r["status"] == "filed")
-    skipped = sum(1 for r in results if r["status"] == "low_confidence")
-    errors = sum(1 for r in results if r["status"] == "error")
-    dry = sum(1 for r in results if r["status"] == "dry_run")
-
-    print(f"\n  ── Summary {'─' * 42}")
-
-    if dry_run:
-        print(f"  {Colors.YELLOW}🏃 Dry run complete: {dry} files would be filed{Colors.RESET}")
-    else:
-        print(f"  {Colors.GREEN}✅ Filed: {filed}{Colors.RESET}")
-
-    if skipped:
-        print(f"  {Colors.YELLOW}⚠️  Skipped (low confidence): {skipped}{Colors.RESET}")
-    if errors:
-        print(f"  {Colors.RED}❌ Errors: {errors}{Colors.RESET}")
-
-    if filed > 0:
-        print(f"\n  {Colors.DIM}💡 Run 'python scanfiler.py --undo' to undo this batch (ID: {batch_id}){Colors.RESET}")
-
-    print()
+    _execute_processing_cycle(valid_files, config, dry_run)
 
 
 
