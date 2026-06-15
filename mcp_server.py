@@ -10,7 +10,7 @@ import mcp.types as types
 
 # Import ScanFiler's operational workspace modules
 from config import get_config
-from scanfiler import process_file, find_files, check_dependencies
+from scanfiler import process_file, process_all, check_dependencies
 from logger import generate_batch_id, undo_batch, get_last_batch_id, load_log
 
 # Initialize the server metadata
@@ -91,29 +91,16 @@ async def handle_call_tool(
         # 1. Action: Process All Files
         if name == "process_all_files":
             inbox_dir = Path(config["inbox_path"]).expanduser()
-            # Defensive check to block scanfiler's internal sys.exit(1) path error crash
             if not inbox_dir.exists():
                 return [types.TextContent(type="text", text=f"❌ Error: Configured inbox directory does not exist: {inbox_dir}")]
 
-            files = find_files(config["inbox_path"], config["supported_extensions"])
-            if not files:
-                return [types.TextContent(type="text", text=f"📭 Inbox is empty. No supported files found in {config['inbox_path']}")]
+            # Let ScanFiler's native process runner scan the directory and file everything
+            process_all(config, dry_run=False)
             
-            batch_id = generate_batch_id()
-            execution_log = []
-            
-            for file_path in files:
-                res = process_file(file_path, config, batch_id, dry_run=False)
-                status = res.get("status", "unknown")
-                if status == "filed":
-                    execution_log.append(f"✅ Filed: {file_path.name} ➔ {res.get('destination')}")
-                elif status == "low_confidence":
-                    execution_log.append(f"⚠️ Skipped (Low Confidence): {file_path.name}")
-                else:
-                    execution_log.append(f"❌ Failed: {file_path.name} - {res.get('error', 'Unknown error')}")
-            
-            summary = f"Processed {len(files)} files over Stdio transport (Batch ID: {batch_id}):\n\n" + "\n".join(execution_log)
-            return [types.TextContent(type="text", text=summary)]
+            return [types.TextContent(
+                type="text", 
+                text=f"📂 Inbox directory execution sweep complete! Check your get_move_history tool or local terminal output to verify classifications."
+            )]
 
         # 2. Action: Process Single File
         elif name == "process_single_file":
@@ -134,8 +121,13 @@ async def handle_call_tool(
             res = process_file(target_path, config, batch_id, dry_run=False)
             
             if res.get("status") == "error":
-                return [types.TextContent(type="text", text=f"❌ Filing failed: {res.get('error', 'Unknown classification runtime error')}\nDetails: {res.get('classification', {})[0:200]}")]
-                
+                # Convert the classification dict to a string before slicing it cleanly
+                details_str = str(res.get('classification', {}))[:200]
+                return [types.TextContent(
+                    type="text", 
+                    text=f"❌ Filing failed: {res.get('error', 'Unknown classification runtime error')}\nDetails: {details_str}"
+                )]
+            
             return [types.TextContent(
                 type="text", 
                 text=f"✅ Document filed successfully!\n\n📄 Original: {target_path.name}\n🗂️ Type: {res.get('classification', {}).get('document_type')}\n🏢 Company: {res.get('classification', {}).get('company')}\n📁 Destination: {res.get('destination')}"
