@@ -63,6 +63,7 @@ ScanFiler uses [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) and a
 | **Ollama** | Local LLM runtime | [ollama.com/download](https://ollama.com/download) |
 | **llama3.2** | AI model for classification (~2GB) | `ollama pull llama3.2` |
 | **pillow-heif** | HEIC format decoder plugin for Pillow | Managed via `requirements.txt` |  
+| **MCP 1.27.2** | Local MCP Server to connect to desktop AI clients | `pip install mcp` |
 
 > **Disk space:** ~2.5 GB total for Ollama + the llama3.2 model. All other dependencies are lightweight.
 
@@ -141,7 +142,9 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-> **HEIC support:** `requirements.txt` includes `pillow-heif`, which adds HEIC decoding support to Pillow. If you set up your venv before this was added, run `pip install pillow-heif` inside your activated venv to pick it up.
+> **HEIC support:** `requirements.txt` includes `pillow-heif`, which adds HEIC decoding support to Pillow. If you set up your venv before this was added, run `pip install pillow-heif` inside your activated venv to pick it up.  
+  
+
 
 ### Step 5: First-Run Setup
 
@@ -157,7 +160,24 @@ The setup wizard will ask you to confirm:
 3. **Ollama model** — Which model to use (default: `llama3.2`)
 4. **File renaming** — Whether to rename files descriptively (default: Yes)
 
-Settings are saved to `~/.scanfiler/config.json` and persist across runs.
+Settings are saved to `~/.scanfiler/config.json` and persist across runs.  
+  
+## 🔌 Integration via Model Context Protocol (MCP)
+
+ScanFiler includes a local MCP server that allows desktop AI clients to run OCR, file documents, and view history directly from your chat interface over secure `stdio` streams.
+
+### Configuration for Claude Desktop
+
+Add the following to your `claude_desktop_config.json` configuration file:
+
+\`\`\`json
+"mcpServers": {
+  "scanfiler-local": {
+    "command": "/path/to/scanfiler/venv/bin/python",
+    "args": ["/path/to/scanfiler/mcp_server.py"]
+  }
+}
+\`\`\`
 
 ---
 

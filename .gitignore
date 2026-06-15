@@ -20,3 +20,10 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# Local configuration or move caches if generated near workspace
+.scanfiler/
+*.log
+
+# Python build caches
+.pytest_cache/
