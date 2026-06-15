@@ -57,12 +57,19 @@ def extract_text_from_image(image_path: str) -> str:
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """Extract text from a PDF by converting pages to images, then OCR-ing each."""
+    import tempfile
     try:
         images = convert_from_path(pdf_path, dpi=300)
         texts = []
         for i, page_image in enumerate(images):
-            page_text = pytesseract.image_to_string(page_image)
-            texts.append(page_text.strip())
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                tmp_path = tmp.name
+            try:
+                page_image.save(tmp_path, format="PNG")
+                page_text = pytesseract.image_to_string(tmp_path)
+                texts.append(page_text.strip())
+            finally:
+                Path(tmp_path).unlink(missing_ok=True)
         return "\n\n".join(texts)
     except Exception as e:
         raise RuntimeError(f"OCR failed for PDF {pdf_path}: {e}")
