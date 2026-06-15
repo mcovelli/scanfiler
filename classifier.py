@@ -24,9 +24,9 @@ Return ONLY a valid JSON object with these exact keys — no explanation, no mar
 {{
     "document_type": "The category (e.g., Bank Statement, Billing Statement, Tax Document, Medical Bill, Insurance Document, Pay Stub, Invoice, Receipt, Legal Document, Government Form)",
     "company": "The company/institution/organization name (e.g., TD Bank, PSEG, IRS, Aetna)",
-    "date": "The statement/billing date in YYYY-MM format. If only a year is visible, use YYYY. If no date found, use null",
-    "confidence": 0.95,
-    "suggested_filename": "A descriptive filename without extension using underscores (e.g., TD_Bank_Statement_June_2026)"
+    "date": "The statement closing/end date in YYYY-MM format. For statement periods with a date range (e.g., 'Apr 21 2026-May 20 2026'), use the END date. If only a year is visible, use YYYY. If no date found, use null",    "confidence": 0.95,
+    "account_number": "The last 4 digits of the account number if visible, otherwise null",
+    "suggested_filename": "A descriptive filename without extension using underscores (e.g., TD_Bank_Statement_June_2026_4788)"
 }}
 
 Rules:
@@ -34,6 +34,8 @@ Rules:
 - "company" should be the official/common company name
 - "date" MUST be the actual statement, billing, or document date (ignore copyright or print dates)
 - The year/month in "suggested_filename" MUST exactly match the "date" field
+- If year/month isa date range (e.g., 'Apr 21 2026-May 20 2026'), use the END date.
+- "account_number" should be ONLY the last 4 digits for privacy, or null if not found
 - "confidence" is a float 0.0–1.0 reflecting classification certainty
 - If you cannot determine type or company, set confidence below 0.5
 - Return ONLY the JSON object
@@ -203,7 +205,7 @@ def _parse_response(text: str) -> dict:
             return _error_result(f"No JSON found in LLM response: {text[:200]}")
 
     # Validate required keys
-    required_keys = ["document_type", "company", "date", "confidence", "suggested_filename"]
+    required_keys = ["document_type", "company", "date", "confidence", "suggested_filename", "account_number"]
     for key in required_keys:
         if key not in result:
             result[key] = None
