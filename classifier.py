@@ -24,9 +24,10 @@ Return ONLY a valid JSON object with these exact keys — no explanation, no mar
 {{
     "document_type": "The category (e.g., Bank Statement, Billing Statement, Tax Document, Medical Bill, Insurance Document, Pay Stub, Invoice, Receipt, Legal Document, Government Form)",
     "company": "The company/institution/organization name (e.g., TD Bank, PSEG, IRS, Aetna)",
-    "date": "The statement closing/end date in YYYY-MM format. For statement periods with a date range (e.g., 'Apr 21 2026-May 20 2026'), use the END date. If only a year is visible, use YYYY. If no date found, use null",    "confidence": 0.95,
+    "date": "ALWAYS use the END/CLOSING date of the statement period. For a range like 'Apr 21 2026 - May 20 2026', this is 2026-05. Never use the start date."    
     "account_number": "The last 4 digits of the account number if visible, otherwise null",
     "suggested_filename": "A descriptive filename without extension using underscores (e.g., TD_Bank_Statement_June_2026_4788)"
+    
 }}
 
 Rules:
@@ -34,7 +35,10 @@ Rules:
 - "company" should be the official/common company name
 - "date" MUST be the actual statement, billing, or document date (ignore copyright or print dates)
 - The year/month in "suggested_filename" MUST exactly match the "date" field
-- If year/month isa date range (e.g., 'Apr 21 2026-May 20 2026'), use the END date.
+- For a period in a date range (e.g., 'Apr 21 2026-May 20 2026'), use the END date.
+- For a period of 'Apr 21 2026 - May 20 2026', the date is 2026-05, NOT 2026-04
+- For a period of 'Jan 15 2026 - Feb 14 2026', the date is 2026-02, NOT 2026-01
+- "suggested_filename" year/month MUST match "date" exactly. Example: if date is 2026-05, filename must contain _May_2026_, not _April_2026_
 - "account_number" should be ONLY the last 4 digits for privacy, or null if not found
 - "confidence" is a float 0.0–1.0 reflecting classification certainty
 - If you cannot determine type or company, set confidence below 0.5
