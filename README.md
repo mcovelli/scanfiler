@@ -62,6 +62,7 @@ ScanFiler uses [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) and a
 | **Poppler** | PDF → image conversion (needed for PDF OCR) | `brew install poppler` |
 | **Ollama** | Local LLM runtime | [ollama.com/download](https://ollama.com/download) |
 | **llama3.2** | AI model for classification (~2GB) | `ollama pull llama3.2` |
+| **pillow-heif** | HEIC format decoder plugin for Pillow | Managed via `requirements.txt` |  
 
 > **Disk space:** ~2.5 GB total for Ollama + the llama3.2 model. All other dependencies are lightweight.
 
