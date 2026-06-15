@@ -121,11 +121,12 @@ async def handle_call_tool(
             res = process_file(target_path, config, batch_id, dry_run=False)
             
             if res.get("status") == "error":
-                # Convert the classification dict to a string before slicing it cleanly
-                details_str = str(res.get('classification', {}))[:200]
+                classification = res.get('classification', {})
+                error_msg = classification.get('error') or res.get('error', 'Unknown classification runtime error')
+                details_str = str(classification)[:200]
                 return [types.TextContent(
                     type="text", 
-                    text=f"❌ Filing failed: {res.get('error', 'Unknown classification runtime error')}\nDetails: {details_str}"
+                    text=f"❌ Filing failed: {error_msg}\nDetails: {details_str}"
                 )]
             
             return [types.TextContent(
